@@ -50,13 +50,6 @@ interface Element {
 annotation class GraphQLMarker
 
 @GraphQLMarker
-class EdgeCase(val query: Query) : Element {
-    override fun render(builder: StringBuilder, indent: String) {
-        builder.append("$indent${query.name}\n")
-    }
-}
-
-@GraphQLMarker
 abstract class Query(val name: String) : Element {
     val children = arrayListOf<Element>()
     protected fun <T : Element> visitEntity(entity: T, visit: T.() -> Unit): T {
@@ -77,7 +70,7 @@ abstract class Query(val name: String) : Element {
         builder.append("\n")
     }
 
-    operator fun Entity.unaryPlus(){
+    operator fun EdgeCase.unaryPlus(){
         children.add(this)
     }
 
@@ -88,7 +81,7 @@ abstract class Query(val name: String) : Element {
     }
 }
 
-abstract class Entity(parent: Query, name: String) :Query(name) {
+abstract class EdgeCase(parent: Query, name: String) :Query(name) {
     init {
         parent.children.add(this)
     }
@@ -116,15 +109,15 @@ class EVENTS(private val filter: Filter) : Query("events") {
         builder.append("\n}")
     }
 
-    val title = object : Entity(this,"title") {}
-    val genre = object : Entity(this,"genre") {}
-    val image = object : Entity(this, "image") {}
-    val link = object : Entity(this, "link") {}
-    val other = object : Entity(this, "other") {}
-    val price = object : Entity(this, "price") {}
-    val text = object : Entity(this, "text") {}
-    val tickets = object : Entity(this, "tickets") {}
-    val time = object : Entity(this, "time") {}
+    val title = object : EdgeCase(this,"title") {}
+    val genre = object : EdgeCase(this,"genre") {}
+    val image = object : EdgeCase(this, "image") {}
+    val link = object : EdgeCase(this, "link") {}
+    val other = object : EdgeCase(this, "other") {}
+    val price = object : EdgeCase(this, "price") {}
+    val text = object : EdgeCase(this, "text") {}
+    val tickets = object : EdgeCase(this, "tickets") {}
+    val time = object : EdgeCase(this, "time") {}
 
     fun location(visit: LOCATION.() -> Unit) = visitEntity(LOCATION(), visit)
 }
@@ -149,23 +142,23 @@ fun events(filter: Filter, visit: EVENTS.() -> Unit): EVENTS {
 }
 
 class LOCATION : Query("location") {
-    val area  = object:Entity(this,"area"){}
-    val place = object:Entity(this,"area"){}
+    val area  = object:EdgeCase(this,"area"){}
+    val place = object:EdgeCase(this,"area"){}
     fun address(visit: ADDRESS.() -> Unit) = visitEntity(ADDRESS(), visit)
     fun coordinates(visit: COORDINATES.() -> Unit) = visitEntity(COORDINATES(), visit)
 }
 
 class ADDRESS : Query("address") {
-    val city = object : Entity(this,"city"){}
-    val street = object : Entity(this,"street"){}
-    val no = object : Entity(this,"no"){}
-    val state = object : Entity(this,"state"){}
-    val zip = object : Entity(this,"zip"){}
+    val city = object : EdgeCase(this,"city"){}
+    val street = object : EdgeCase(this,"street"){}
+    val no = object : EdgeCase(this,"no"){}
+    val state = object : EdgeCase(this,"state"){}
+    val zip = object : EdgeCase(this,"zip"){}
 }
 
 class COORDINATES : Query("coordinates") {
-    val longitude = object : Entity(this,"longitude"){}
-    val latitude = object : Entity(this,"latitude"){}
+    val longitude = object : EdgeCase(this,"longitude"){}
+    val latitude = object : EdgeCase(this,"latitude"){}
 }
 
 enum class FilterType(val str: String) {

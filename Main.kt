@@ -4,43 +4,42 @@ fun main() {
 
     val filters = Filter.Builder()
             .filters(FilterType.TIMEGT, System.currentTimeMillis()/1000)
-            .filters(FilterType.PLACE, "HUSET")
             .build()
 
     val e = events(filters) {
-        +title
-        +genre
-        +image
-        +link
-        +other
-        +price
-        +text
-        +time
-        +tickets
+        title
+        genre
+        image
+        link
+        other
+        price
+        text
+        time
+        tickets
         location {
-            area()
-            place()
+            area
+            place
             address {
-                city()
-                street()
-                no()
-                state()
-                zip()
+                city
+                street
+                no
+                state
+                zip
             }
             coordinates {
-                longitude()
-                latitude()
+                longitude
+                latitude
             }
         }
     }
 
     println(e)
 
-    //val data: Response = postStuff(GQL("$e"), "https://mama.sh/moro/api")
-    //val out = data.errors ?: data.data.events
-    //out.forEach {
-    //    println(it)
-    //}
+    val data: Response = postStuff(GQL("$e"), "https://mama.sh/moro/api")
+    val out = data.errors ?: data.data.events
+    out.forEach {
+        println(it)
+    }
 }
 
 interface Element {
@@ -60,7 +59,7 @@ class EdgeCase(val query: Query) : Element {
 @GraphQLMarker
 abstract class Query(val name: String) : Element {
     val children = arrayListOf<Element>()
-    protected fun <T : Element> visitEntity(entity: T, visit: T.() -> Unit = {}): T {
+    protected fun <T : Element> visitEntity(entity: T, visit: T.() -> Unit): T {
         entity.visit()
         children.add(entity)
         return entity
@@ -78,8 +77,8 @@ abstract class Query(val name: String) : Element {
         builder.append("\n")
     }
 
-    operator fun Query.unaryPlus(): Query{
-        return visitEntity(this)
+    operator fun Entity.unaryPlus(){
+        children.add(this)
     }
 
     override fun toString(): String {
@@ -89,6 +88,11 @@ abstract class Query(val name: String) : Element {
     }
 }
 
+abstract class Entity(parent: Query, name: String) :Query(name) {
+    init {
+        parent.children.add(this)
+    }
+}
 
 class EVENTS(private val filter: Filter) : Query("events") {
     override fun render(builder: StringBuilder, indent: String) {
@@ -112,15 +116,15 @@ class EVENTS(private val filter: Filter) : Query("events") {
         builder.append("\n}")
     }
 
-    val title = object : Query("title") {}
-    val genre = object : Query("genre") {}
-    val image = object : Query("image") {}
-    val link = object : Query("link") {}
-    val other = object : Query("other") {}
-    val price = object : Query("price") {}
-    val text = object : Query("text") {}
-    val tickets = object : Query("tickets") {}
-    val time = object : Query("time") {}
+    val title = object : Entity(this,"title") {}
+    val genre = object : Entity(this,"genre") {}
+    val image = object : Entity(this, "image") {}
+    val link = object : Entity(this, "link") {}
+    val other = object : Entity(this, "other") {}
+    val price = object : Entity(this, "price") {}
+    val text = object : Entity(this, "text") {}
+    val tickets = object : Entity(this, "tickets") {}
+    val time = object : Entity(this, "time") {}
 
     fun location(visit: LOCATION.() -> Unit) = visitEntity(LOCATION(), visit)
 }
@@ -145,34 +149,24 @@ fun events(filter: Filter, visit: EVENTS.() -> Unit): EVENTS {
 }
 
 class LOCATION : Query("location") {
-    fun area() = visitEntity(AREA())
-    fun place() = visitEntity(PLACE())
+    val area  = object:Entity(this,"area"){}
+    val place = object:Entity(this,"area"){}
     fun address(visit: ADDRESS.() -> Unit) = visitEntity(ADDRESS(), visit)
     fun coordinates(visit: COORDINATES.() -> Unit) = visitEntity(COORDINATES(), visit)
 }
 
-class AREA : Query("area")
-class PLACE : Query("place")
 class ADDRESS : Query("address") {
-    fun city() = visitEntity(CITY())
-    fun street() = visitEntity(STREET())
-    fun no() = visitEntity(NO())
-    fun state() = visitEntity(STATE())
-    fun zip() = visitEntity(ZIP())
+    val city = object : Entity(this,"city"){}
+    val street = object : Entity(this,"street"){}
+    val no = object : Entity(this,"no"){}
+    val state = object : Entity(this,"state"){}
+    val zip = object : Entity(this,"zip"){}
 }
 
-class CITY : Query("city")
-class STREET : Query("street")
-class NO : Query("no")
-class STATE : Query("state")
-class ZIP : Query("zip")
 class COORDINATES : Query("coordinates") {
-    fun longitude() = visitEntity(LONGITUDE())
-    fun latitude() = visitEntity(LATITUDE())
+    val longitude = object : Entity(this,"longitude"){}
+    val latitude = object : Entity(this,"latitude"){}
 }
-
-class LONGITUDE : Query("longitude")
-class LATITUDE : Query("latitude")
 
 enum class FilterType(val str: String) {
     PLACE("place"),
